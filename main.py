@@ -1,14 +1,14 @@
 import time
 import usocket
 import _thread
-from machine import UART, Pin
+from machine import UART, Pin, PWM
 
 from imu import Accel
 from encoder import HallEncoder
 from motor import Motor
 from pid import PID
 
-IMU_OFFSET = 4.0
+IMU_OFFSET = 2
 BASE_PWM = 1
 
 imu = Accel(9, 8)
@@ -16,11 +16,10 @@ encoder_l = HallEncoder(4,6)
 encoder_r = HallEncoder(2,1)
 motor = Motor(33,35,18,16, BASE_PWM)
 
-pid = PID(kp=0.6, ki=0.000, kd=0.0000, setpoint=0, output_limits=(-1023, 1023))
+pid = PID(kp=0.4, ki=0.000, kd=0.00, setpoint=0, output_limits=(-1023, 1023))
 
 
-led = Pin(15, Pin.OUT)
-led.value(1)
+Beep = PWM(Pin(15, Pin.OUT), freq=500)
 
 sw = True
 def stop_btn_callback(pin):
@@ -28,7 +27,7 @@ def stop_btn_callback(pin):
     time.sleep(0.1)
     if pin.value() == 0:
         sw = not sw
-        led.value(not led.value())
+        # led.value(not led.value())
         print("停止定时器")  # 不然Thonny无法停止程序
 
 stop_btn = Pin(0, Pin.IN, Pin.PULL_UP)
@@ -103,6 +102,10 @@ while sw:
 
     angle = roll - IMU_OFFSET
 
+    b_pwm = min(int(abs(angle)/45 * 1023), 1023)
+
+    Beep.duty(b_pwm)
+
     v_pwm = (angle / 45) * 1023
     w_pwm = 0
 
@@ -127,4 +130,5 @@ while sw:
     # print(f"delay: {delay_s}, delay_s_max: {delay_s_max}")
 
     time.sleep(0.00001)
+    time.sleep(0.1)
 
