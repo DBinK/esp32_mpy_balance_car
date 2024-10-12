@@ -1,7 +1,7 @@
 import time
 import usocket
 import _thread
-from machine import UART
+from machine import UART, Pin
 
 from imu import Accel
 from encoder import HallEncoder
@@ -9,14 +9,30 @@ from motor import Motor
 from pid import PID
 
 IMU_OFFSET = 4.0
-BASE_PWM = 20
+BASE_PWM = 1
 
 imu = Accel(9, 8)
 encoder_l = HallEncoder(4,6)
 encoder_r = HallEncoder(2,1)
 motor = Motor(33,35,18,16, BASE_PWM)
 
-pid = PID(kp=1.0, ki=0.0, kd=0.0, setpoint=0, output_limits=(-1023, 1023))
+pid = PID(kp=0.6, ki=0.000, kd=0.0000, setpoint=0, output_limits=(-1023, 1023))
+
+
+led = Pin(15, Pin.OUT)
+led.value(1)
+
+sw = True
+def stop_btn_callback(pin):
+    global sw
+    time.sleep(0.1)
+    if pin.value() == 0:
+        sw = not sw
+        led.value(not led.value())
+        print("停止定时器")  # 不然Thonny无法停止程序
+
+stop_btn = Pin(0, Pin.IN, Pin.PULL_UP)
+stop_btn.irq(stop_btn_callback, Pin.IRQ_FALLING)
 
 # try:
 #     tcp = usocket.socket()
@@ -58,21 +74,24 @@ pid = PID(kp=1.0, ki=0.0, kd=0.0, setpoint=0, output_limits=(-1023, 1023))
 # # 启动TCP线程
 # _thread.start_new_thread(tcp_thread, ())
 
+def time_diff(last_time=[None]):
+    """计算两次调用之间的时间差，单位为微秒。"""
+    current_time = time.ticks_us()  # 获取当前时间（单位：微秒）
+
+    if last_time[0] is None: # 如果是第一次调用，更新last_time
+        last_time[0] = current_time
+        return 0.000_001 # 防止除零错误
+    
+    else: # 计算时间差
+        diff = time.ticks_diff(current_time, last_time[0])  # 计算时间差
+        last_time[0] = current_time  # 更新上次调用时间
+        return diff  # 返回时间差us
+
 delay_s = 0
 delay_s_max = 0
-last_time = time.ticks_us()
 
-while True:
-
-    start = time.ticks_us()
-    
-    delay_s = (start - last_time) / 1000000
-
-    delay_s_max = max(delay_s_max, delay_s)
-    
-    last_time = start
-    
-    roll, pitch = imu.get_angles()
+while sw:
+    roll, pitch = imu.get_angles(delay_s/1000_000)
 
     speed_l = encoder_l.get_speed()
     speed_r = encoder_r.get_speed()
@@ -84,14 +103,14 @@ while True:
 
     angle = roll - IMU_OFFSET
 
-    v_pwm = (angle / 90) * 1023
+    v_pwm = (angle / 45) * 1023
     w_pwm = 0
 
     v_pwm_pid = -pid.update(v_pwm)
 
     motor.motion(v_pwm_pid, w_pwm)
 
-    vofa_msg = f"{angle}, {speed_l}, {speed_r}, {v_pwm}, {delay_s},  {motor.BASE_SPEED}, {pid.kp}, {pid.ki}, {pid.kd} \n"
+    vofa_msg = f"{angle}, {speed_l}, {speed_r}, {v_pwm}, {delay_s},  {motor.BASE_SPEED}, {pid.kp}, {pid.ki}, {pid.kd}"
 
     print(vofa_msg)
 
@@ -101,9 +120,11 @@ while True:
 #         except Exception as e:
 #             print("Send Error:", e)
 
+    delay_s = time_diff()
+
+    delay_s_max = max(delay_s_max, delay_s)
+    
+    # print(f"delay: {delay_s}, delay_s_max: {delay_s_max}")
+
     time.sleep(0.00001)
 
-    end = time.ticks_us()
-
-
-    #print(f"delay: {delay_s}, delay_s_max: {delay_s_max}")
