@@ -42,6 +42,9 @@ class Accel:
         self.pitch = 0.0
         self.yaw   = 0.0
 
+        self.rolls  = []
+        self.pitchs = []
+
         # 启动线程更新角度
         #_thread.start_new_thread(self.update_angles, ())
 
@@ -71,8 +74,8 @@ class Accel:
         vals["GyZ"] = self.bytes_toint(raw_ints[12], raw_ints[13])
         return vals  # 返回原始值
     
-    def window_filter(value, values, window_size=50):
-    # 将值添加到列表中
+    def window_filter(self, value, values, window_size=50):
+        # 将值添加到列表中
         values.append(value)
 
         # 如果列表长度超过窗口大小，则移除最旧的元素
@@ -98,7 +101,7 @@ class Accel:
     def update_angles(self):
         while True:
             dt = self.time_diff()
-            self.get_angles()
+            self.get_angles(dt)
             print(f"Roll: {self.roll:.2f}, Pitch: {self.pitch:.2f}, dt: {dt:.6f}")
             
             time.sleep(0.000005)  # 每次更新间隔
@@ -135,8 +138,12 @@ class Accel:
 
         # self.yaw = self.kalmanZ.get_angle(yaw, gyro_z, dt)
 
-        self.roll = self.kalmanX.get_angle(roll, gyro_x, dt)
+        
+        self.roll  = self.kalmanX.get_angle( roll, gyro_x, dt)
         self.pitch = self.kalmanY.get_angle(pitch, gyro_y, dt)
+        
+        # self.roll  = self.window_filter(roll,  self.rolls, 3)
+        # self.pitch = self.window_filter(pitch, self.pitchs, 3)
 
         return self.roll, self.pitch
     
@@ -154,6 +161,6 @@ if __name__ == "__main__":
         delay_s = mpu.time_diff()
         delay_s_max = max(delay_s_max, delay_s)
         
-        print(f"roll: {roll:.2f}, pitch: {pitch:.2f}, delay: {delay_s}, delay_s_max: {delay_s_max}")
+        print(f"roll: {roll:.2f}, pitch: {pitch:.2f}, delay_us: {delay_s}, delay_s_max: {delay_s_max}")
 
         time.sleep(0.00001)

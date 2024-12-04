@@ -18,6 +18,7 @@ class PID:
         error = self.setpoint - measured_value
         self.integral += error * dt
         derivative = (error - self.prev_error) / dt if dt > 0 else 0
+        
         output = self.kp * error + self.ki * self.integral + self.kd * derivative
         
         if self.output_limits[0] is not None and output < self.output_limits[0]:
