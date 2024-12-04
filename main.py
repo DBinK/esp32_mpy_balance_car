@@ -1,10 +1,11 @@
 import time
 from machine import UART, Pin, PWM
 
-from imu import Accel
-from encoder import HallEncoder
-from motor import Motor
-from pid import PID
+from lib.imu import Accel
+from lib.encoder import HallEncoder
+from lib.motor import Motor
+from lib.pid import PID
+
 
 from tools import time_diff
 
@@ -18,7 +19,7 @@ encoder_l = HallEncoder(4,6)
 encoder_r = HallEncoder(2,1)
 motor = Motor(33,35,18,16, BASE_PWM)
 
-pid_angle = PID(kp=2.0, ki=0.0, kd=0.0 , setpoint=0, output_limits=(-1023, 1023))  # 角度环
+pid_angle = PID(kp=10.0, ki=0.0, kd=0.0 , setpoint=0, output_limits=(-1023, 1023))  # 角度环
 pid_gyx   = PID(kp=3.0, ki=0.0, kd=0.01, setpoint=0, output_limits=(-1023, 1023))  # 角速度环
 
 
@@ -45,7 +46,9 @@ while True:
     speed_l = 0
     speed_r = 0
 
+    # 读取imu数据
     roll, pitch = imu.get_angles(sec)
+    gyx = imu.vals["GyX"] / 131.0
 
     if abs(pitch) > 90 or abs(roll) > 70:
         motor.stop()
@@ -53,21 +56,21 @@ while True:
         time.sleep(0.5)
         continue
 
-    angle = roll - IMU_OFFSET
-    v_pwm = (angle / 60) * 1023
-    v_pwm_pid = -pid_angle.update(v_pwm)
+    angle = roll - IMU_OFFSET  # 减去偏置
 
-    gyx = imu.vals["GyX"] / 131.0
-    gyx_pid = -pid_gyx.update(gyx)
+    # 计算PID
+    angle_pid = -pid_angle.update(angle)
+    gyx_pid   = -pid_gyx.update(gyx)
 
-    pwm_all = v_pwm_pid*0.5 + gyx_pid*0.5
+    # 计算输出
+    pwm_all = angle*0.5 + gyx_pid*0.0         # 直立环 = 角度环 + 角速度环
     pwm_all = min(max(pwm_all, -1023), 1023)  # 限制输出
 
     motor.motion(pwm_all, 0)
 
-    vofa_msg = f"{angle:.2f}, {v_pwm}, {v_pwm_pid}, {ms}, {speed_l}, {speed_r}, {pid_angle.kp}, {pid_angle.ki}, {pid_angle.kd}"
+    vofa_msg = f"{angle:.2f}, {angle}, {angle_pid}, {ms}, {speed_l}, {speed_r}, {pid_angle.kp}, {pid_angle.ki}, {pid_angle.kd}"
 
-    debug_msg = f"delay: {ms:.2f} ms, {hz:.2f} Hz, v_pwm: {v_pwm:.2f}, v_pwm_pid: {v_pwm_pid:.2f}, \
+    debug_msg = f"delay: {ms:.2f} ms, {hz:.2f} Hz, angle: {angle:.2f}, angle_pid: {angle_pid:.2f}, \
 roll: {roll:.2f}, gyx: {gyx:.2f}, gyx_pid: {gyx_pid:.2f}, speed_l: {speed_l:.2f}, speed_r: {speed_r:.2f}"
     
     print(debug_msg)
