@@ -1,11 +1,8 @@
-'''
-实验名称：连接无线路由器
-版本：v1.0
-作者：WalnutPi
-说明：编程实现连接路由器，将IP地址等相关信息打印出来。
-'''
-import network,time
+
+import time
 from machine import Pin
+
+time.sleep(2)
 
 # 释放所有GPIO, 断电重上电不再失控
 def release_all_GPIO():

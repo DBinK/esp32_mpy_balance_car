@@ -32,19 +32,19 @@ class PID:
 
 # 示例使用
 if __name__ == "__main__":
-    pid = PID(1.0, 0.5, 0.0, setpoint=10.0, output_limits=(-10, 10))
+    pid = PID(1.0, 1.0, 0.0, setpoint=10.0, output_limits=(-10, 10))
     measured_value = 0.0
 
-    for i in range(50):
+    for i in range(100):
         control = pid.update(measured_value)
         measured_value += control * 0.1
         print(f"当前步数:{i*0.001}, 控制输出: {control}, 当前值: {measured_value}")
-        time.sleep(0.05)  # 模拟控制循环的时间间隔
+        time.sleep(0.01)  # 模拟控制循环的时间间隔
         
     pid.setpoint = 20
     
-    for i in range(50):
+    for i in range(100):
         control = pid.update(measured_value)
         measured_value += control * 0.1
         print(f"当前步数:{i*0.001}, 控制输出: {control}, 当前值: {measured_value}")
-        time.sleep(0.05)  # 模拟控制循环的时间间隔   
+        time.sleep(0.01)  # 模拟控制循环的时间间隔   

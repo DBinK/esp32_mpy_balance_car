@@ -18,13 +18,18 @@ encoder_l = HallEncoder(4,6)
 encoder_r = HallEncoder(2,1)
 motor = Motor(33,35,18,16, BASE_PWM)
 
-pid = PID(kp=0.7, ki=0.00, kd=0.01, setpoint=0, output_limits=(-1023, 1023))
+pid_angle = PID(kp=2.0, ki=0.0, kd=0.0 , setpoint=0, output_limits=(-1023, 1023))  # 角度环
+pid_gyx   = PID(kp=3.0, ki=0.0, kd=0.01, setpoint=0, output_limits=(-1023, 1023))  # 角速度环
+
 
 Beep = PWM(Pin(15, Pin.OUT), freq=500)
 
 # 初始化全局变量
 delay_s = 0
 delay_s_max = 0
+
+print("初始化完成, 启动循环")
+time.sleep(1)
 
 while True:
     # 获取时间差相关信息
@@ -34,12 +39,13 @@ while True:
     sec = dt / 1000
     hz  = 1 / (sec)
 
-    # print(f"一个循环运行时间: {ms:.2f} ms, fps: {hz:.2f} Hz")
+    # speed_l = encoder_l.get_speed()
+    # speed_r = encoder_r.get_speed()
+
+    speed_l = 0
+    speed_r = 0
 
     roll, pitch = imu.get_angles(sec)
-
-    speed_l = encoder_l.get_speed()
-    speed_r = encoder_r.get_speed()
 
     if abs(pitch) > 90 or abs(roll) > 70:
         motor.stop()
@@ -48,22 +54,27 @@ while True:
         continue
 
     angle = roll - IMU_OFFSET
-
-    b_pwm = min(int(abs(angle)/60 * 1023), 1023)
-
-    Beep.duty(b_pwm)
-
     v_pwm = (angle / 60) * 1023
-    w_pwm = 0
+    v_pwm_pid = -pid_angle.update(v_pwm)
 
-    v_pwm_pid = -pid.update(v_pwm)
+    gyx = imu.vals["GyX"] / 131.0
+    gyx_pid = -pid_gyx.update(gyx)
 
-    motor.motion(v_pwm_pid, w_pwm)
+    pwm_all = v_pwm_pid*0.5 + gyx_pid*0.5
+    pwm_all = min(max(pwm_all, -1023), 1023)  # 限制输出
 
-    vofa_msg = f"{angle:.2f}, {v_pwm}, {v_pwm_pid}, {ms}, {speed_l}, {speed_r}, {pid.kp}, {pid.ki}, {pid.kd}"
+    motor.motion(pwm_all, 0)
 
-    debug_msg = f"delay: {ms:.2f} ms, {hz:.2f} Hz, v_pwm: {v_pwm:.2f}, v_pwm_pid: {v_pwm_pid:.2f}, roll: {roll:.2f}, pitch: {pitch:.2f}, speed_l: {speed_l:.2f}, speed_r: {speed_r:.2f}"
+    vofa_msg = f"{angle:.2f}, {v_pwm}, {v_pwm_pid}, {ms}, {speed_l}, {speed_r}, {pid_angle.kp}, {pid_angle.ki}, {pid_angle.kd}"
+
+    debug_msg = f"delay: {ms:.2f} ms, {hz:.2f} Hz, v_pwm: {v_pwm:.2f}, v_pwm_pid: {v_pwm_pid:.2f}, \
+roll: {roll:.2f}, gyx: {gyx:.2f}, gyx_pid: {gyx_pid:.2f}, speed_l: {speed_l:.2f}, speed_r: {speed_r:.2f}"
+    
     print(debug_msg)
+
+    # 蜂鸣器反馈显示
+    b_pwm = min(int(abs(gyx)/60 * 1023), 1023)
+    Beep.duty(b_pwm)
 
     # time.sleep(0.00001)
     # time.sleep(0.1)

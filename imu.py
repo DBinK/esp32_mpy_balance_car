@@ -37,6 +37,9 @@ class Accel:
         self.kalmanY = KalmanFilter()
         self.kalmanZ = KalmanFilter()
 
+        # 初始化原始值
+        self.vals = {}
+        
         # 初始化角度值
         self.roll  = 0.0
         self.pitch = 0.0
@@ -64,15 +67,16 @@ class Accel:
 
     def get_values(self):
         raw_ints = self.get_raw_values()
-        vals = {}
-        vals["AcX"] = self.bytes_toint(raw_ints[0], raw_ints[1])
-        vals["AcY"] = self.bytes_toint(raw_ints[2], raw_ints[3])
-        vals["AcZ"] = self.bytes_toint(raw_ints[4], raw_ints[5])
-        vals["Tmp"] = self.bytes_toint(raw_ints[6], raw_ints[7]) / 340.00 + 36.53
-        vals["GyX"] = self.bytes_toint(raw_ints[8], raw_ints[9])
-        vals["GyY"] = self.bytes_toint(raw_ints[10], raw_ints[11])
-        vals["GyZ"] = self.bytes_toint(raw_ints[12], raw_ints[13])
-        return vals  # 返回原始值
+        
+        self.vals["AcX"] = self.bytes_toint(raw_ints[0], raw_ints[1])
+        self.vals["AcY"] = self.bytes_toint(raw_ints[2], raw_ints[3])
+        self.vals["AcZ"] = self.bytes_toint(raw_ints[4], raw_ints[5])
+        self.vals["Tmp"] = self.bytes_toint(raw_ints[6], raw_ints[7]) / 340.00 + 36.53
+        self.vals["GyX"] = self.bytes_toint(raw_ints[8], raw_ints[9])
+        self.vals["GyY"] = self.bytes_toint(raw_ints[10], raw_ints[11])
+        self.vals["GyZ"] = self.bytes_toint(raw_ints[12], raw_ints[13])
+
+        return self.vals  # 返回原始值
     
     def window_filter(self, value, values, window_size=50):
         # 将值添加到列表中
@@ -161,6 +165,7 @@ if __name__ == "__main__":
         delay_s = mpu.time_diff()
         delay_s_max = max(delay_s_max, delay_s)
         
-        print(f"roll: {roll:.2f}, pitch: {pitch:.2f}, delay_us: {delay_s}, delay_s_max: {delay_s_max}")
+        # print(f"roll: {roll:.2f}, pitch: {pitch:.2f}, delay_us: {delay_s}, delay_s_max: {delay_s_max}")
+        print(f"data: {mpu.vals["GyX"] / 131.0}")
 
-        time.sleep(0.00001)
+        time.sleep(0.01)
