@@ -19,8 +19,8 @@ encoder_l = HallEncoder(4,6)
 encoder_r = HallEncoder(2,1)
 motor = Motor(33,35,18,16, BASE_PWM)
 
-pid_angle = PID(kp=10.0, ki=0.0, kd=0.0 , setpoint=0, output_limits=(-1023, 1023))  # 角度环
-pid_gyx   = PID(kp=3.0, ki=0.0, kd=0.01, setpoint=0, output_limits=(-1023, 1023))  # 角速度环
+pid_angle = PID(kp=14.0, ki=0.0, kd=0.0 , setpoint=0, output_limits=(-1023, 1023))  # 角度环
+pid_gyx   = PID(kp=3.0, ki=0.0, kd=0.0, setpoint=0, output_limits=(-1023, 1023))  # 角速度环
 
 
 Beep = PWM(Pin(15, Pin.OUT), freq=500)
@@ -63,7 +63,8 @@ while True:
     gyx_pid   = -pid_gyx.update(gyx)
 
     # 计算输出
-    pwm_all = angle*0.5 + gyx_pid*0.0         # 直立环 = 角度环 + 角速度环
+    pwm_all = angle_pid*1.0 + gyx_pid*1.0         # 直立环 = 角度环 + 角速度环
+    
     pwm_all = min(max(pwm_all, -1023), 1023)  # 限制输出
 
     motor.motion(pwm_all, 0)
