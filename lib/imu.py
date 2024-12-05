@@ -165,7 +165,7 @@ if __name__ == "__main__":
         delay_s = mpu.time_diff()
         delay_s_max = max(delay_s_max, delay_s)
         
-        # print(f"roll: {roll:.2f}, pitch: {pitch:.2f}, delay_us: {delay_s}, delay_s_max: {delay_s_max}")
-        print(f"data: {mpu.vals["GyX"] / 131.0}")
+        print(f"roll: {roll:.2f}, pitch: {pitch:.2f}, delay_us: {delay_s}, delay_s_max: {delay_s_max}")
+        # print(f"data: {mpu.vals["GyX"] / 131.0}")
 
         time.sleep(0.01)

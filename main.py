@@ -11,7 +11,7 @@ from tools import time_diff
 
 # 初始化参数
 IMU_OFFSET = 1 
-BASE_PWM = 5
+BASE_PWM = 0
 
 # 初始化各对象
 imu = Accel(9, 8)
@@ -62,7 +62,7 @@ while True:
     # gyx_pid   = -pid_gyx.update(gyx)
 
     # 计算输出
-    pwm_all = angle * 15.0 + gyx * 3.5     # 直立环
+    pwm_all = angle * 12.0 + gyx * 3.0     # 直立环
     # pwm_all = angle_pid*1.0 + gyx_pid*1.0     # 直立环
     
     pwm_all = min(max(pwm_all, -1023), 1023)  # 限制输出
