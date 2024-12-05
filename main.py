@@ -19,9 +19,8 @@ encoder_l = HallEncoder(4,6)
 encoder_r = HallEncoder(2,1)
 motor = Motor(33,35,18,16, BASE_PWM)
 
-pid_angle = PID(kp=14.0, ki=0.0, kd=0.0 , setpoint=0, output_limits=(-1023, 1023))  # 角度环
-pid_gyx   = PID(kp=3.0, ki=0.0, kd=0.0, setpoint=0, output_limits=(-1023, 1023))  # 角速度环
-
+pid_angle = PID(kp=14.0, ki=0.0, kd=0.0 , setpoint=0, output_limits=(-1023, 1023)) 
+pid_gyx   = PID(kp=1.0, ki=0.0, kd=0.0, setpoint=0, output_limits=(-1023, 1023))  
 
 Beep = PWM(Pin(15, Pin.OUT), freq=500)
 
@@ -59,20 +58,20 @@ while True:
     angle = roll - IMU_OFFSET  # 减去偏置
 
     # 计算PID
-    angle_pid = -pid_angle.update(angle)
-    gyx_pid   = -pid_gyx.update(gyx)
+    # angle_pid = -pid_angle.update(angle)
+    # gyx_pid   = -pid_gyx.update(gyx)
 
     # 计算输出
-    pwm_all = angle_pid*1.0 + gyx_pid*1.0         # 直立环 = 角度环 + 角速度环
+    pwm_all = angle * 15.0 + gyx * 3.5     # 直立环
+    # pwm_all = angle_pid*1.0 + gyx_pid*1.0     # 直立环
     
     pwm_all = min(max(pwm_all, -1023), 1023)  # 限制输出
 
     motor.motion(pwm_all, 0)
 
-    vofa_msg = f"{angle:.2f}, {angle}, {angle_pid}, {ms}, {speed_l}, {speed_r}, {pid_angle.kp}, {pid_angle.ki}, {pid_angle.kd}"
+    # vofa_msg = f"{angle:.2f}, {angle}, {angle_pid}, {ms}, {speed_l}, {speed_r}, {pid_angle.kp}, {pid_angle.ki}, {pid_angle.kd}"
 
-    debug_msg = f"delay: {ms:.2f} ms, {hz:.2f} Hz, angle: {angle:.2f}, angle_pid: {angle_pid:.2f}, \
-roll: {roll:.2f}, gyx: {gyx:.2f}, gyx_pid: {gyx_pid:.2f}, speed_l: {speed_l:.2f}, speed_r: {speed_r:.2f}"
+    debug_msg = f"delay: {ms:.2f} ms, {hz:.2f} Hz, pwm_all: {pwm_all}, angle: {angle:.2f}, gyx: {gyx:.2f}, roll: {roll:.2f},  speed_l: {speed_l:.2f}, speed_r: {speed_r:.2f}"
     
     print(debug_msg)
 
