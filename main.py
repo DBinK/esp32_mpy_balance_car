@@ -75,7 +75,7 @@ while True:
     
     print(debug_msg)
 
-    # 蜂鸣器反馈显示
+    # LED反馈显示
     b_pwm = min(int(abs(gyx)/60 * 1023), 1023)
     Beep.duty(b_pwm)
 
